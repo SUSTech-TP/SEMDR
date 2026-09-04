@@ -1,69 +1,59 @@
-# CAIL Dataset Resources
+# SEMDR: A Semantic-Aware Dual Encoder Model for Legal Judgment Prediction with Legal Clue Tracing
 
-This directory contains the CAIL dataset resources used by the SEMDR experiments.
+This repository contains the official implementation for the paper: **SEMDR: A Semantic-Aware Dual Encoder Model for Legal Judgment Prediction with Legal Clue Tracing**.
 
-## Layout
+## Introduction
 
-```text
-data/
-├── cail_small/
-│   ├── train_cs.json
-│   ├── valid_cs.json
-│   ├── test_cs.json
-│   └── mappings_cail_small.pkl
-└── cail_big/
-    ├── train_cs.json
-    ├── test_cs.json
-    └── mappings_cail_big_fixed.pkl
-```
+Legal Judgment Prediction (LJP) is a critical task in Legal AI, aiming to predict the judgment results (e.g., relevant law articles, charges, and terms of penalty) based on the fact descriptions of cases. Existing methods often struggle with confusing charges and long-tail legal cases due to the lack of fine-grained legal knowledge reasoning.
 
-Each `*.json` file is stored as JSON Lines, with one case record per line.
+To address these challenges, we propose **SEMDR** (Semantic-Aware Dual Encoder Model for Legal Judgment Prediction). SEMDR introduces a novel **Legal Clue Tracing Mechanism**, which constructs a legal judgment reasoning knowledge graph and utilizes a Graph Attention Network (GAT) to perform multi-hop reasoning. By aligning case representations with legal label representations in a unified semantic space, SEMDR effectively captures fine-grained legal clues and achieves state-of-the-art performance on benchmark datasets.
 
-## Dataset Splits
+## Core Components
 
-| Dataset | Split | Records |
-|---|---:|---:|
-| CAIL-small | train | 101,619 |
-| CAIL-small | valid | 13,768 |
-| CAIL-small | test | 26,749 |
-| CAIL-big | train | 1,587,979 |
-| CAIL-big | test | 185,120 |
+- **`semdr_kg_gat.py`**: Implementation of the Legal Knowledge Graph Reasoner using Graph Attention Networks (GAT) for multi-fact reasoning and legal clue tracing.
+- **`semdr_tt_ls.py`**: The Dual-Encoder (Two-Tower) backbone architecture for encoding case facts and legal labels.
+- **`semdr_kg_gat_v1_sailer_low.py`**: The integrated SEMDR model training and evaluation script.
 
-## Record Fields
+## Requirements
 
-| Field | CAIL-small | CAIL-big | Description |
-|---|---:|---:|---|
-| `fact_cut` | Yes | Yes | Tokenized case-fact text with whitespace separators. This is the shared text field used for cross-dataset length statistics. |
-| `fact` | Yes | No | Original, non-tokenized case-fact text. |
-| `accu` | Yes | Yes | Charge label identifier. |
-| `law` | Yes | Yes | Law-article label identifier. |
-| `time` | Yes | Yes | Term-of-penalty related label identifier. |
-| `term_cate` | Yes | Yes | Term-of-penalty category identifier. |
-| `term` | Yes | Yes | Term-of-penalty label identifier. |
+The code is implemented in Python and PyTorch. Main dependencies include:
+- Python 3.8+
+- PyTorch 1.10+
+- Transformers (Hugging Face)
+- scikit-learn
+- tqdm
 
-The mapping files provide the label-space resources required to decode task identifiers.
+## Usage
 
-## Length Statistics
+### Training the SEMDR Model
 
-The repository script `scripts/analyze_cail_lengths.py` streams JSON Lines data and reports both character lengths and BERT input token lengths. The tokenizer used for the reported results is the local `bert-base-chinese` tokenizer. Token counts include `[CLS]` and `[SEP]` and are measured before truncation.
-
-The token-length bins are:
-
-| Bin | Definition |
-|---|---|
-| `token_0_256` | 0 to 256 tokens, inclusive |
-| `token_257_512` | 257 to 512 tokens, inclusive |
-| `token_gt_512` | More than 512 tokens |
-
-Run the analysis with:
+To train the SEMDR model on the LJP dataset:
 
 ```bash
-python scripts/analyze_cail_lengths.py \
-  --base-dir ./data \
-  --datasets cail_small cail_big \
-  --text-fields fact_cut fact \
-  --tokenizer /path/to/bert-base-chinese \
-  --output-dir ./results
+python3 semdr_kg_gat_v1_sailer_low.py \
+    --data-dir ./data \
+    --epochs 16 \
+    --batch-size 32 \
+    --learning-rate 2e-5
 ```
 
-The CAIL-big files do not include `fact`; the script therefore reports `fact_cut` for CAIL-big and both available text fields for CAIL-small.
+### Knowledge Graph Reasoning
+
+The Graph Attention Network (GAT) module can be initialized and integrated as follows:
+
+```python
+from semdr_kg_gat import LegalKGReasoner
+
+# Initialize the reasoner with 2-hop reasoning and 4 attention heads
+reasoner = LegalKGReasoner(dim=256, gat_layers=2, num_heads=4)
+```
+
+## Citation
+
+If you find our code or paper useful, please consider citing our work.
+
+*(Citation information will be updated upon publication)*
+
+## License
+
+This project is licensed under the MIT License.
